@@ -112,6 +112,12 @@ def test_rate_limit_returns_429(fake_services):
     assert r.headers["Retry-After"] == "30"
     fake_services.llm.assert_not_awaited()
 
+def test_truncated_answer_is_reported_and_not_cached(fake_services):
+    fake_services.llm.return_value = LLMResult(
+        content="cut off mid-sen", model="test-model", finish_reason="length")
+    r = client.post("/v1/chat/completions", json=BODY, headers=HEADERS)
+    assert r.json()["choices"][0]["finish_reason"] == "length"
+    fake_services.save.assert_not_awaited()      # truncated answers must never be cached
 
 # ---------- metrics access ----------
 

@@ -42,4 +42,5 @@ class Settings(BaseSettings):
     RATE_LIMIT_PER_MINUTE: int = 60
     RATE_LIMIT_PER_HOUR: int = 1000
     COST_PER_1K_TOKENS_USD: float = 0.0005   # rough price used to estimate savings
+    MAX_COMPLETION_TOKENS: int = 4096
 settings = Settings()

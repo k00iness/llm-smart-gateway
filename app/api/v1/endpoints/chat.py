@@ -56,7 +56,7 @@ async def chat_completions(
     total_tokens = result.prompt_tokens + result.completion_tokens
 
     # 4. Save in the cache
-    if last_user_message and result.content:
+    if last_user_message and result.content and result.finish_reason == "stop":
         await semantic_cache_service.save_to_cache(
             last_user_message, result.content, result.model, total_tokens
         )
@@ -73,7 +73,7 @@ async def chat_completions(
         model=shown_model,
         choices=[Choice(index=0,
                         message=ResponseMessage(role="assistant", content=result.content),
-                        finish_reason="stop")],
+                        finish_reason=result.finish_reason)],
         usage=Usage(prompt_tokens=result.prompt_tokens,
                     completion_tokens=result.completion_tokens,
                     total_tokens=total_tokens),

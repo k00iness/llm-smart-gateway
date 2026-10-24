@@ -16,6 +16,7 @@ class LLMResult:
     prompt_tokens: int = 0
     completion_tokens: int = 0
     fallback: bool = False
+    finish_reason: str = "stop"
 
 
 class LLMRouterService:
@@ -37,6 +38,7 @@ class LLMRouterService:
             response = await self.primary_client.chat.completions.create(
                 model=settings.PRIMARY_MODEL,
                 messages=formatted,
+                max_tokens=settings.MAX_COMPLETION_TOKENS,
                 timeout=settings.LATENCY_THRESHOLD_SECONDS,
             )
             usage = response.usage
@@ -45,6 +47,7 @@ class LLMRouterService:
                 model=settings.PRIMARY_MODEL,
                 prompt_tokens=usage.prompt_tokens if usage else 0,
                 completion_tokens=usage.completion_tokens if usage else 0,
+                finish_reason=response.choices[0].finish_reason or "stop",
             )
         except Exception as primary_error:
             logger.warning("[FALLBACK TRIGGERED] primary model failed: %s", primary_error)
@@ -54,7 +57,11 @@ class LLMRouterService:
             async with httpx.AsyncClient() as client:
                 r = await client.post(
                     f"{self.fallback_url}/chat/completions",
-                    json={"model": self.fallback_model, "messages": formatted},
+                    json={
+                        "model": self.fallback_model,
+                        "messages": formatted,
+                        "max_tokens": settings.MAX_COMPLETION_TOKENS,
+                    },
                     timeout=120.0,
                 )
                 r.raise_for_status()
@@ -66,6 +73,7 @@ class LLMRouterService:
                     prompt_tokens=usage.get("prompt_tokens", 0),
                     completion_tokens=usage.get("completion_tokens", 0),
                     fallback=True,
+                    finish_reason=data["choices"][0].get("finish_reason") or "stop",
                 )
         except Exception as fallback_error:
             raise RuntimeError(

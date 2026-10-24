@@ -85,7 +85,7 @@ pip install -r requirements-dev.txt
 python -m pytest tests -v
 ```
 
-15 tests cover authentication, rate limiting, the cache guards, the cache-hit and
+16 tests cover authentication, rate limiting, the cache guards, the cache-hit and
 fallback paths, and admin-only metrics. Redis, Qdrant and the LLM providers are
 mocked, so the tests are fast and free.
 
@@ -102,6 +102,7 @@ mocked, so the tests are fast and free.
 - Cost savings are an estimate based on a flat price per 1K tokens.
 - Streaming responses are not supported.
 - Metrics are global, not per client.
+- Answers are capped at `MAX_COMPLETION_TOKENS` (4096 by default). A truncated answer is reported with `finish_reason: length` and is never stored in the cache.
 
 ## Project layout
 
