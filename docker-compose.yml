@@ -1,0 +1,46 @@
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    ports:
+      - "6333:6333"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    restart: unless-stopped
+
+  gateway:
+    build: .
+    ports:
+      - "8000:8000"
+    env_file: .env                # keys stay in .env, never in this file
+    environment:                  # these override .env inside Docker
+      REDIS_HOST: redis
+      QDRANT_HOST: qdrant
+      FALLBACK_LLM_URL: http://host.docker.internal:11434/v1
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - hf_cache:/root/.cache/huggingface   # keeps the embedding model between restarts
+    depends_on:
+      redis:
+        condition: service_healthy
+      qdrant:
+        condition: service_started
+    restart: unless-stopped
+
+volumes:
+  redis_data:
+  qdrant_data:
+  hf_cache:
